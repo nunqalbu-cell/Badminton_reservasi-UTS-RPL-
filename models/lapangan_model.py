@@ -32,34 +32,26 @@ class LapanganModel:
             conn.close()
 
     @staticmethod
-    def update_lapangan(id_lapangan, nama_lapangan, harga_per_jam, status_lapangan, keterangan):
-        conn = get_connection()
-        if not conn: return False
-        cursor = conn.cursor()
-        query = "UPDATE lapangan SET nama_lapangan=%s, harga_per_jam=%s, status_lapangan=%s, keterangan=%s WHERE id_lapangan=%s"
+    def update_lapangan(self, id_lapangan, nama, harga, status, keterangan):
         try:
-            cursor.execute(query, (nama_lapangan, harga_per_jam, status_lapangan, keterangan, id_lapangan))
-            conn.commit()
-            return True
+            query = "UPDATE lapangan SET nama_lapangan=%s, harga_per_jam=%s, status_lapangan=%s, keterangan=%s WHERE id_lapangan=%s"
+            self.cursor.execute(query, (nama, harga, status, keterangan, id_lapangan))
+            self.conn.commit()
+            return True, "Data lapangan berhasil diperbarui!"
         except Exception as e:
-            print("[Error LapanganModel.update_lapangan]:", e)
-            return False
-        finally:
-            cursor.close()
-            conn.close()
+            self.conn.rollback()
+            return False, f"Gagal memperbarui lapangan: {e}"
 
     @staticmethod
-    def delete_lapangan(id_lapangan):
-        conn = get_connection()
-        if not conn: return False
-        cursor = conn.cursor()
+    def delete_lapangan(self, id_lapangan):
         try:
-            cursor.execute("DELETE FROM lapangan WHERE id_lapangan=%s", (id_lapangan,))
-            conn.commit()
-            return True
+            self.cursor.execute("SET FOREIGN_KEY_CHECKS=0;")
+            query = "DELETE FROM lapangan WHERE id_lapangan=%s"
+            self.cursor.execute(query, (id_lapangan,))
+            self.cursor.execute("SET FOREIGN_KEY_CHECKS=1;")
+            self.conn.commit()
+            return True, "Data lapangan berhasil dihapus!"
         except Exception as e:
-            print("[Error LapanganModel.delete_lapangan]:", e)
-            return False
-        finally:
-            cursor.close()
-            conn.close()
+            self.conn.rollback()
+            self.cursor.execute("SET FOREIGN_KEY_CHECKS=1;")
+            return False, f"Gagal menghapus lapangan: {e}"
