@@ -1,32 +1,77 @@
-import sys, os
+import sys
+import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from datetime import datetime
 from models.pembayaran_model import PembayaranModel
-from models.reservasi_model import ReservasiModel
+
 
 class PembayaranController:
-    def __init__(self):
-        self.pembayaran_model = PembayaranModel()
-        self.reservasi_model = ReservasiModel()
-
     def get_all_pembayaran(self):
-        return self.pembayaran_model.get_all_pembayaran()
+        try:
+            return PembayaranModel.get_all_pembayaran()
+        except Exception as e:
+            print(f"Error get_all_pembayaran: {e}")
+            return []
 
-    def proses_pembayaran(self, id_reservasi, metode, jumlah, kode_ref=''):
-        if not id_reservasi or not jumlah:
-            return False, "ID Reservasi dan Jumlah Bayar wajib diisi!"
-        
-        success = self.pembayaran_model.add_pembayaran(
-            id_reservasi, metode, jumlah, 'berhasil', kode_ref
-        )
-        if success:
-            res_list = self.reservasi_model.get_all_reservasi()
-            for r in res_list:
-                if r['id_reservasi'] == int(id_reservasi):
-                    self.reservasi_model.update_reservasi(
-                        r['id_reservasi'], r['id_user'], r['id_lapangan'],
-                        str(r['tanggal_reservasi']), str(r['jam_mulai']), str(r['jam_selesai']),
-                        float(r['total_harga']), 'dikonfirmasi'
-                    )
-                    break
-            return True, "Pembayaran berhasil diproses dan status reservasi telah dikonfirmasi!"
-        return False, "Gagal memproses pembayaran."
+    def add_pembayaran(self, id_reservasi, metode_pembayaran, jumlah_bayar,
+                       status_pembayaran="menunggu", kode_referensi="", tanggal_bayar=""):
+        if not str(id_reservasi).strip() or not str(metode_pembayaran).strip() or not str(jumlah_bayar).strip():
+            return False, "ID Reservasi, Metode Pembayaran, dan Jumlah Bayar wajib diisi!"
+
+        try:
+            id_res_int = int(str(id_reservasi).strip())
+            jumlah_float = float(str(jumlah_bayar).strip())
+        except ValueError:
+            return False, "ID Reservasi dan Jumlah Bayar harus berupa angka!"
+
+        kode_clean = str(kode_referensi).strip() if kode_referensi else None
+        tgl_clean = str(tanggal_bayar).strip() if tanggal_bayar else None
+
+        # Otomatis isi waktu bayar saat ini jika status langsung 'lunas' dan tanggal kosong
+        if status_pembayaran == "lunas" and not tgl_clean:
+            tgl_clean = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        try:
+            PembayaranModel.add_pembayaran(
+                id_res_int, metode_pembayaran.strip(), jumlah_float,
+                status_pembayaran, kode_clean, tgl_clean
+            )
+            return True, "Data pembayaran berhasil disimpan!"
+        except Exception as e:
+            return False, f"Gagal menyimpan pembayaran: {e}"
+
+    def update_pembayaran(self, id_pembayaran, id_reservasi, metode_pembayaran, jumlah_bayar,
+                          status_pembayaran, kode_referensi="", tanggal_bayar=""):
+        if not str(id_reservasi).strip() or not str(metode_pembayaran).strip() or not str(jumlah_bayar).strip():
+            return False, "ID Reservasi, Metode Pembayaran, dan Jumlah Bayar wajib diisi!"
+
+        try:
+            id_pay_int = int(str(id_pembayaran).strip())
+            id_res_int = int(str(id_reservasi).strip())
+            jumlah_float = float(str(jumlah_bayar).strip())
+        except ValueError:
+            return False, "ID dan Jumlah Bayar harus berupa angka!"
+
+        kode_clean = str(kode_referensi).strip() if kode_referensi else None
+        tgl_clean = str(tanggal_bayar).strip() if tanggal_bayar else None
+
+        # Otomatis isi waktu bayar saat admin mengubah status menjadi 'lunas'
+        if status_pembayaran == "lunas" and not tgl_clean:
+            tgl_clean = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        try:
+            PembayaranModel.update_pembayaran(
+                id_pay_int, id_res_int, metode_pembayaran.strip(), jumlah_float,
+                status_pembayaran, kode_clean, tgl_clean
+            )
+            return True, "Data pembayaran berhasil diperbarui!"
+        except Exception as e:
+            return False, f"Gagal memperbarui pembayaran: {e}"
+
+    def delete_pembayaran(self, id_pembayaran):
+        try:
+            PembayaranModel.delete_pembayaran(int(str(id_pembayaran).strip()))
+            return True, "Data pembayaran berhasil dihapus!"
+        except Exception as e:
+            return False, f"Gagal menghapus pembayaran: {e}"

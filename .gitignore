@@ -1,6 +1,9 @@
-.venv/
 env/
+venv/
 __pycache__/
 *.pyc
+build/
+dist/
+*.spec
+.pytest_cache/
 .vscode/
-.DS_Store

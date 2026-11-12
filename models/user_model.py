@@ -1,43 +1,70 @@
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+import hashlib
 from config.database import get_connection
 
 class UserModel:
     @staticmethod
-    def get_user_by_email(email):
-        conn = get_connection()
-        if not conn: return None
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
-        user = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        return user
+    def hash_password(password):
+        """Mengubah plain text password menjadi hash SHA-256"""
+        return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
     @staticmethod
-    def create_user(nama, email, password_hash, no_hp, role='pelanggan'):
+    def autentikasi(email, password):
+        """Verifikasi login menggunakan Parameterized Query dan SHA-256"""
         conn = get_connection()
-        if not conn: return False
-        cursor = conn.cursor()
-        query = "INSERT INTO users (nama, email, password_hash, no_hp, role) VALUES (%s, %s, %s, %s, %s)"
+        if not conn:
+            return None
         try:
-            cursor.execute(query, (nama, email, password_hash, no_hp, role))
-            conn.commit()
-            return True
-        except Exception as e:
-            print("[Error UserModel.create_user]:", e)
-            return False
-        finally:
+            cursor = conn.cursor(dictionary=True)
+            pwd_hash = UserModel.hash_password(password)
+            query = """
+                SELECT id_user, nama, email, no_hp, role 
+                FROM users 
+                WHERE email = %s AND password_hash = %s
+            """
+            cursor.execute(query, (email, pwd_hash))
+            user = cursor.fetchone()
             cursor.close()
             conn.close()
+            return user
+        except Exception as e:
+            print(f"Error autentikasi: {e}")
+            if conn:
+                conn.close()
+            return None
 
     @staticmethod
-    def get_all_users():
+    def register_user(nama, email, password, no_hp="", role="pelanggan"):
+        """Registrasi akun baru dengan password terenkripsi SHA-256 dan role terkunci"""
         conn = get_connection()
-        if not conn: return []
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT id_user, nama, email, no_hp, role FROM users")
-        result = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return result
+        if not conn:
+            return False, "Koneksi database gagal!"
+        try:
+            cursor = conn.cursor()
+            # Cek apakah email sudah terdaftar
+            cursor.execute("SELECT id_user FROM users WHERE email = %s", (email,))
+            if cursor.fetchone():
+                cursor.close()
+                conn.close()
+                return False, "Email sudah terdaftar! Gunakan email lain."
+
+            pwd_hash = UserModel.hash_password(password)
+            # Paksa role selalu 'pelanggan' untuk registrasi publik
+            safe_role = "pelanggan"
+
+            query = """
+                INSERT INTO users (nama, email, password_hash, no_hp, role)
+                VALUES (%s, %s, %s, %s, %s)
+            """
+            cursor.execute(query, (nama, email, pwd_hash, no_hp, safe_role))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return True, "Registrasi berhasil! Silakan login sebagai Pelanggan."
+        except Exception as e:
+            if conn:
+                conn.rollback()
+                conn.close()
+            return False, f"Gagal mendaftar: {e}"
