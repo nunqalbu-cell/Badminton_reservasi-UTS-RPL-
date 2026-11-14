@@ -1,39 +1,85 @@
-import sys, os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from models.reservasi_model import ReservasiModel
-from models.riwayat_reservasi_model import RiwayatReservasiModel
+
 
 class ReservasiController:
-    def __init__(self):
-        self.reservasi_model = ReservasiModel()
-        self.riwayat_model = RiwayatReservasiModel()
+    @staticmethod
+    def get_all_reservasi():
+        return ReservasiModel.get_all_reservasi()
 
-    def get_all_reservasi(self):
-        return self.reservasi_model.get_all_reservasi()
+    @staticmethod
+    def add_reservasi(id_user, id_lapangan, tanggal, jam_mulai, jam_selesai, total_harga):
+        if not all([
+            str(id_user).strip(),
+            str(id_lapangan).strip(),
+            str(tanggal).strip(),
+            str(jam_mulai).strip(),
+            str(jam_selesai).strip(),
+            str(total_harga).strip(),
+        ]):
+            return False, "Seluruh kolom formulir reservasi wajib diisi!"
 
-    def add_reservasi(self, id_user, id_lapangan, tanggal, jam_mulai, jam_selesai, total_harga, status):
-        if not id_user or not id_lapangan or not tanggal:
-            return False, "ID User, ID Lapangan, dan Tanggal wajib diisi!"
-        
-        res_id = self.reservasi_model.add_reservasi(
-            id_user, id_lapangan, tanggal, jam_mulai, jam_selesai, total_harga, status
+        try:
+            uid = int(id_user)
+            lid = int(id_lapangan)
+            total = float(total_harga)
+            if total <= 0:
+                return False, "Total biaya harus lebih dari 0!"
+        except ValueError:
+            return False, "ID User, ID Lapangan, dan Total Biaya harus berupa angka!"
+
+        return ReservasiModel.add_reservasi(
+            uid,
+            lid,
+            str(tanggal).strip(),
+            str(jam_mulai).strip(),
+            str(jam_selesai).strip(),
+            total,
         )
-        if res_id:
-            self.riwayat_model.add_riwayat(res_id, "pemesanan", "-", status, "Reservasi baru dibuat")
-            return True, "Data reservasi berhasil disimpan ke MySQL!"
-        return False, "Gagal menyimpan reservasi! Pastikan ID User & ID Lapangan ada di database."
 
-    def update_reservasi(self, id_reservasi, id_user, id_lapangan, tanggal, jam_mulai, jam_selesai, total_harga, status):
-        success = self.reservasi_model.update_reservasi(
-            id_reservasi, id_user, id_lapangan, tanggal, jam_mulai, jam_selesai, total_harga, status
+    @staticmethod
+    def update_reservasi(
+        id_reservasi,
+        id_user,
+        id_lapangan,
+        tanggal,
+        jam_mulai,
+        jam_selesai,
+        total_harga,
+        status_baru,
+    ):
+        if not str(id_reservasi).strip():
+            return False, "Pilih baris reservasi pada tabel terlebih dahulu!"
+        if not all([
+            str(id_user).strip(),
+            str(id_lapangan).strip(),
+            str(tanggal).strip(),
+            str(jam_mulai).strip(),
+            str(jam_selesai).strip(),
+            str(total_harga).strip(),
+        ]):
+            return False, "Seluruh kolom formulir wajib diisi sebelum memperbarui!"
+
+        try:
+            rid = int(id_reservasi)
+            uid = int(id_user)
+            lid = int(id_lapangan)
+            total = float(total_harga)
+        except ValueError:
+            return False, "ID User, ID Lapangan, dan Total Biaya harus berupa angka!"
+
+        return ReservasiModel.update_reservasi(
+            rid,
+            uid,
+            lid,
+            str(tanggal).strip(),
+            str(jam_mulai).strip(),
+            str(jam_selesai).strip(),
+            total,
+            status_baru,
         )
-        if success:
-            self.riwayat_model.add_riwayat(id_reservasi, "perubahan", "diperbarui", status, "Data reservasi diperbarui")
-            return True, "Data reservasi berhasil diperbarui!"
-        return False, "Gagal memperbarui data reservasi."
 
-    def delete_reservasi(self, id_reservasi):
-        success = self.reservasi_model.delete_reservasi(id_reservasi)
-        if success:
-            return True, "Data reservasi berhasil dihapus!"
-        return False, "Gagal menghapus data reservasi."
+    @staticmethod
+    def delete_reservasi(id_reservasi):
+        if not str(id_reservasi).strip():
+            return False, "Pilih baris reservasi yang akan dihapus!"
+        return ReservasiModel.delete_reservasi(int(id_reservasi))

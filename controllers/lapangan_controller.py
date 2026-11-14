@@ -1,35 +1,54 @@
-import sys, os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from models.lapangan_model import LapanganModel
 
+
 class LapanganController:
-    def __init__(self):
-        self.lapangan_model = LapanganModel()
+    @staticmethod
+    def get_all_lapangan():
+        return LapanganModel.get_all_lapangan()
 
-    def get_all_lapangan(self):
-        return self.lapangan_model.get_all_lapangan()
-
-    def add_lapangan(self, nama, harga, status, ket):
-        if not nama or not harga:
-            return False, "Nama dan harga wajib diisi!"
+    @staticmethod
+    def add_lapangan(nama_lapangan, harga_per_jam, status_lapangan="aktif", keterangan=""):
+        if not str(nama_lapangan).strip() or not str(harga_per_jam).strip():
+            return False, "Nama lapangan dan harga sewa per jam wajib diisi!"
         try:
-            harga_val = float(harga)
+            harga = float(harga_per_jam)
+            if harga <= 0:
+                return False, "Harga sewa per jam harus lebih dari 0!"
         except ValueError:
-            return False, "Harga harus berupa angka desimal/nominal!"
-        
-        success = self.lapangan_model.add_lapangan(nama, harga_val, status, ket)
-        if success:
-            return True, "Data lapangan berhasil ditambahkan!"
-        return False, "Gagal menambah data lapangan."
+            return False, "Harga sewa per jam harus berupa angka!"
 
-    def update_lapangan(self, id_lap, nama, harga, status, ket):
-        success = self.lapangan_model.update_lapangan(id_lap, nama, harga, status, ket)
-        if success:
-            return True, "Data lapangan berhasil diperbarui!"
-        return False, "Gagal memperbarui data lapangan."
+        return LapanganModel.add_lapangan(
+            str(nama_lapangan).strip(),
+            harga,
+            status_lapangan,
+            str(keterangan).strip(),
+        )
 
-    def delete_lapangan(self, id_lap):
-        success = self.lapangan_model.delete_lapangan(id_lap)
-        if success:
-            return True, "Data lapangan berhasil dihapus!"
-        return False, "Gagal menghapus data lapangan."
+    @staticmethod
+    def update_lapangan(
+        id_lapangan, nama_lapangan, harga_per_jam, status_lapangan, keterangan=""
+    ):
+        if not str(id_lapangan).strip():
+            return False, "Pilih baris lapangan pada tabel terlebih dahulu!"
+        if not str(nama_lapangan).strip() or not str(harga_per_jam).strip():
+            return False, "Nama lapangan dan harga sewa wajib diisi!"
+        try:
+            harga = float(harga_per_jam)
+            if harga <= 0:
+                return False, "Harga sewa per jam harus lebih dari 0!"
+        except ValueError:
+            return False, "Harga sewa per jam harus berupa angka!"
+
+        return LapanganModel.update_lapangan(
+            int(id_lapangan),
+            str(nama_lapangan).strip(),
+            harga,
+            status_lapangan,
+            str(keterangan).strip(),
+        )
+
+    @staticmethod
+    def delete_lapangan(id_lapangan):
+        if not str(id_lapangan).strip():
+            return False, "Pilih baris lapangan yang akan dihapus!"
+        return LapanganModel.delete_lapangan(int(id_lapangan))

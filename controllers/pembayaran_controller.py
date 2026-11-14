@@ -26,10 +26,28 @@ class PembayaranController:
         )
 
     @staticmethod
-    def verifikasi_pembayaran(id_pembayaran, status_baru):
+    def perbarui_pembayaran(
+        id_pembayaran, id_reservasi, metode, jumlah_bayar, status_baru, kode_referensi=""
+    ):
         if not str(id_pembayaran).strip():
             return False, "Pilih transaksi pembayaran pada tabel terlebih dahulu!"
-        return PembayaranModel.update_pembayaran(int(id_pembayaran), status_baru)
+        if not str(id_reservasi).strip() or not str(jumlah_bayar).strip():
+            return False, "ID Reservasi dan Jumlah Bayar wajib diisi!"
+        try:
+            pid = int(id_pembayaran)
+            res_id = int(id_reservasi)
+            nominal = float(jumlah_bayar)
+        except ValueError:
+            return False, "ID Reservasi dan Jumlah Bayar harus berupa angka!"
+
+        return PembayaranModel.update_pembayaran_lengkap(
+            pid,
+            res_id,
+            metode,
+            nominal,
+            status_baru,
+            str(kode_referensi).strip(),
+        )
 
     @staticmethod
     def hapus_pembayaran(id_pembayaran):

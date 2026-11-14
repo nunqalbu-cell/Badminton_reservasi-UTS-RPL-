@@ -1,16 +1,26 @@
+import os
+import sys
 from tkinter import messagebox
 import customtkinter as ctk
 from controllers.signin_controller import SigninController
 
 
+def get_asset_path(filename: str) -> str:
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, "assets", filename)
+    return os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "assets", filename)
+    )
+
+
 class SigninView(ctk.CTkToplevel):
     def __init__(self, parent):
         super().__init__(parent)
-        self.title("Registrasi Akun Pelanggan")
+        self.title("Registrasi Akun")
         self.configure(fg_color="#F4F6F9")
         self.resizable(False, False)
 
-        width, height = 430, 500
+        width, height = 440, 565
         screen_w = self.winfo_screenwidth()
         screen_h = self.winfo_screenheight()
         pos_x = (screen_w - width) // 2
@@ -19,7 +29,18 @@ class SigninView(ctk.CTkToplevel):
 
         self.transient(parent)
         self.grab_set()
+        self.after(150, self._set_window_icon)
         self._build_ui()
+
+    def _set_window_icon(self):
+        try:
+            if not self.winfo_exists():
+                return
+            ico_path = get_asset_path("logo.ico")
+            if os.path.exists(ico_path):
+                self.iconbitmap(ico_path)
+        except Exception:
+            pass
 
     def _build_ui(self):
         card = ctk.CTkFrame(
@@ -33,22 +54,22 @@ class SigninView(ctk.CTkToplevel):
 
         ctk.CTkLabel(
             card,
-            text="PENDAFTARAN PELANGGAN",
+            text="PENDAFTARAN",
             font=("Arial", 18, "bold"),
             text_color="#0F2C59",
-        ).pack(pady=(18, 2))
+        ).pack(pady=(20, 2))
 
         ctk.CTkLabel(
             card,
-            text="Peran Akun Otomatis: Pelanggan (User)",
+            text="Selamat datang!",
             font=("Arial", 11, "bold"),
             text_color="#2E7D32",
-        ).pack(pady=(0, 14))
+        ).pack(pady=(0, 16))
 
         fields = [
             ("Nama Lengkap", "entry_nama", "Masukkan nama lengkap...", False),
             ("Alamat Email", "entry_email", "contoh@email.com", False),
-            ("Kata Sandi", "entry_pwd", "Minimal 4 karakter...", True),
+            ("Kata Sandi", "entry_pwd", "Minimal 6 karakter...", True),
             ("Nomor HP / WhatsApp", "entry_nohp", "08xxxxxxxxxx", False),
         ]
 
@@ -76,25 +97,25 @@ class SigninView(ctk.CTkToplevel):
         self.btn_submit = ctk.CTkButton(
             card,
             text="Daftar Sekarang",
-            height=38,
+            height=40,
             font=("Arial", 13, "bold"),
             fg_color="#2E7D32",
             hover_color="#1B5E20",
             text_color="#FFFFFF",
             command=self._handle_register,
         )
-        self.btn_submit.pack(fill="x", padx=28, pady=(8, 8))
+        self.btn_submit.pack(fill="x", padx=28, pady=(12, 10))
 
         ctk.CTkButton(
             card,
             text="Batal / Kembali ke Login",
-            height=36,
-            font=("Arial", 12),
+            height=38,
+            font=("Arial", 12, "bold"),
             fg_color="#6C757D",
             hover_color="#4B5563",
             text_color="#FFFFFF",
             command=self.destroy,
-        ).pack(fill="x", padx=28)
+        ).pack(fill="x", padx=28, pady=(0, 20))
 
     def _handle_register(self):
         success, message = SigninController.register(

@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import tkinter as tk
 import customtkinter as ctk
 from PIL import Image
@@ -14,17 +15,19 @@ def get_asset_path(filename: str) -> str:
 
 
 class SplashView(ctk.CTk):
+    DURATION_SECONDS = 10  # Minimal 1 menit (60 detik)
+
     def __init__(self):
         super().__init__()
         self.is_closed = False
         self._after_ids = []
-        self._progress = 0.0
+        self._start_time = None
 
         self.title("Reservasi Lapangan Badminton")
         self.configure(fg_color="#F4F6F9")
         self.resizable(False, False)
 
-        width, height = 460, 320
+        width, height = 460, 330
         screen_w = self.winfo_screenwidth()
         screen_h = self.winfo_screenheight()
         pos_x = (screen_w - width) // 2
@@ -35,7 +38,7 @@ class SplashView(ctk.CTk):
         self._set_window_icon()
         self._build_ui()
 
-        # Mulai animasi progress bar setelah jendela selesai diinisialisasi
+        self._start_time = time.monotonic()
         aid = self.after(100, self._animate_progress)
         self._after_ids.append(aid)
 
@@ -70,12 +73,13 @@ class SplashView(ctk.CTk):
             text_color="#0F2C59",
         ).pack(pady=(4, 2))
 
-        ctk.CTkLabel(
+        self.status_label = ctk.CTkLabel(
             card,
-            text="Memuat komponen sistem dan konfigurasi...",
+            text="Memuat komponen sistem... (0%)",
             font=("Arial", 12),
             text_color="#4B5563",
-        ).pack(pady=(0, 18))
+        )
+        self.status_label.pack(pady=(0, 14))
 
         self.progress_bar = ctk.CTkProgressBar(
             card,
@@ -91,10 +95,17 @@ class SplashView(ctk.CTk):
         if self.is_closed or not self.winfo_exists():
             return
 
-        self._progress += 0.05
-        if self._progress <= 1.0:
-            self.progress_bar.set(self._progress)
-            aid = self.after(70, self._animate_progress)
+        elapsed = time.monotonic() - self._start_time
+        progress = min(elapsed / self.DURATION_SECONDS, 1.0)
+        persen = int(progress * 100)
+
+        self.progress_bar.set(progress)
+        self.status_label.configure(
+            text=f"Memuat komponen sistem dan konfigurasi... ({persen}%)"
+        )
+
+        if progress < 1.0:
+            aid = self.after(100, self._animate_progress)
             self._after_ids.append(aid)
         else:
             self._cancel_all_after()

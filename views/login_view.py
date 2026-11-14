@@ -26,7 +26,7 @@ class LoginView(ctk.CTk):
         self.configure(fg_color="#F4F6F9")
         self.resizable(False, False)
 
-        width, height = 440, 480
+        width, height = 440, 535
         screen_w = self.winfo_screenwidth()
         screen_h = self.winfo_screenheight()
         pos_x = (screen_w - width) // 2
@@ -56,13 +56,13 @@ class LoginView(ctk.CTk):
             border_width=1,
             border_color="#D1D5DB",
         )
-        card.pack(fill="both", expand=True, padx=28, pady=24)
+        card.pack(fill="both", expand=True, padx=26, pady=22)
 
         logo_path = get_asset_path("logo.png")
         if os.path.exists(logo_path):
             img = Image.open(logo_path)
             self.logo_img = ctk.CTkImage(light_image=img, size=(76, 76))
-            ctk.CTkLabel(card, image=self.logo_img, text="").pack(pady=(20, 6))
+            ctk.CTkLabel(card, image=self.logo_img, text="").pack(pady=(22, 6))
 
         ctk.CTkLabel(
             card,
@@ -111,7 +111,7 @@ class LoginView(ctk.CTk):
             border_color="#CBD5E1",
             text_color="#111827",
         )
-        self.entry_password.pack(fill="x", padx=32, pady=(4, 20))
+        self.entry_password.pack(fill="x", padx=32, pady=(4, 22))
         self.entry_password.bind("<Return>", lambda _event: self._handle_login())
 
         self.btn_login = ctk.CTkButton(
@@ -124,19 +124,19 @@ class LoginView(ctk.CTk):
             text_color="#FFFFFF",
             command=self._handle_login,
         )
-        self.btn_login.pack(fill="x", padx=32, pady=(0, 10))
+        self.btn_login.pack(fill="x", padx=32, pady=(0, 12))
 
         self.btn_signin = ctk.CTkButton(
             card,
             text="Daftar Akun Pelanggan Baru",
-            height=38,
-            font=("Arial", 12, "bold"),
+            height=40,
+            font=("Arial", 13, "bold"),
             fg_color="#0F2C59",
             hover_color="#1E3A8A",
             text_color="#FFFFFF",
             command=self._open_signin,
         )
-        self.btn_signin.pack(fill="x", padx=32)
+        self.btn_signin.pack(fill="x", padx=32, pady=(0, 22))
 
     def _handle_login(self):
         email = self.entry_email.get()
