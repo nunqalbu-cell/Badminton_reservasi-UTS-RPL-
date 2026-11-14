@@ -19,7 +19,9 @@ class ReservasiModel:
                 ORDER BY id_reservasi DESC
             """
             cursor.execute(query)
-            return cursor.fetchall()
+            rows = cursor.fetchall()
+            conn.commit()
+            return rows
         except Exception:
             return []
         finally:
@@ -28,45 +30,61 @@ class ReservasiModel:
 
     @staticmethod
     def add_reservasi(
-        id_user, id_lapangan, tanggal_reservasi, jam_mulai, jam_selesai, total_harga
+        id_user,
+        id_lapangan,
+        tanggal_reservasi,
+        jam_mulai,
+        jam_selesai,
+        total_harga,
     ):
-        """Menambahkan transaksi reservasi baru dengan validasi ID User & Lapangan."""
+        """Menambahkan transaksi reservasi baru dengan validasi ID."""
         conn = get_connection()
         if not conn:
             return False, "Gagal terhubung ke basis data MySQL."
         cursor = conn.cursor(dictionary=True)
         try:
-            # 1. Cek apakah ID User terdaftar
-            cursor.execute("SELECT id_user FROM users WHERE id_user = %s", (id_user,))
+            cursor.execute(
+                "SELECT id_user FROM users WHERE id_user = %s",
+                (id_user,),
+            )
             if not cursor.fetchone():
-                cursor.execute("SELECT id_user, nama FROM users ORDER BY id_user ASC")
+                cursor.execute(
+                    "SELECT id_user, nama FROM users ORDER BY id_user ASC"
+                )
                 users = cursor.fetchall()
-                daftar_u = ", ".join(f"{u['id_user']} ({u['nama']})" for u in users)
-                return False, f"ID User {id_user} tidak ditemukan!\nID User tersedia: {daftar_u or 'Kosong'}"
+                daftar_u = ", ".join(
+                    f"{u['id_user']} ({u['nama']})" for u in users
+                )
+                return (
+                    False,
+                    f"ID User {id_user} tidak ditemukan!\n"
+                    f"ID User tersedia: {daftar_u or 'Kosong'}",
+                )
 
-            # 2. Cek apakah ID Lapangan terdaftar
             cursor.execute(
                 "SELECT id_lapangan FROM lapangan WHERE id_lapangan = %s",
                 (id_lapangan,),
             )
             if not cursor.fetchone():
                 cursor.execute(
-                    "SELECT id_lapangan, nama_lapangan FROM lapangan ORDER BY id_lapangan ASC"
+                    "SELECT id_lapangan, nama_lapangan "
+                    "FROM lapangan ORDER BY id_lapangan ASC"
                 )
                 laps = cursor.fetchall()
                 daftar_l = ", ".join(
-                    f"{lap['id_lapangan']} ({lap['nama_lapangan']})" for lap in laps
+                    f"{lap['id_lapangan']} ({lap['nama_lapangan']})"
+                    for lap in laps
                 )
                 return (
                     False,
-                    f"ID Lapangan {id_lapangan} tidak ditemukan!\nID Lapangan tersedia: {daftar_l or 'Kosong'}",
+                    f"ID Lapangan {id_lapangan} tidak ditemukan!\n"
+                    f"ID Lapangan tersedia: {daftar_l or 'Kosong'}",
                 )
 
-            # 3. Simpan data reservasi baru
             query = """
                 INSERT INTO reservasi
-                (id_user, id_lapangan, tanggal_reservasi, jam_mulai, jam_selesai,
-                 total_harga, status_reservasi)
+                (id_user, id_lapangan, tanggal_reservasi, jam_mulai,
+                 jam_selesai, total_harga, status_reservasi)
                 VALUES (%s, %s, %s, %s, %s, %s, 'menunggu_pembayaran')
             """
             cursor.execute(
@@ -154,11 +172,16 @@ class ReservasiModel:
         cursor = conn.cursor()
         try:
             cursor.execute(
-                "UPDATE reservasi SET status_reservasi = %s WHERE id_reservasi = %s",
+                "UPDATE reservasi SET status_reservasi = %s "
+                "WHERE id_reservasi = %s",
                 (status_baru, id_reservasi),
             )
             conn.commit()
-            return True, f"Status reservasi ID {id_reservasi} diperbarui menjadi '{status_baru}'."
+            return (
+                True,
+                f"Status reservasi ID {id_reservasi} diperbarui "
+                f"menjadi '{status_baru}'.",
+            )
         except Exception as exc:
             conn.rollback()
             return False, f"Gagal memperbarui status reservasi: {exc}"
@@ -168,7 +191,7 @@ class ReservasiModel:
 
     @staticmethod
     def delete_reservasi(id_reservasi):
-        """Menghapus riwayat & pembayaran terkait terlebih dahulu, lalu menghapus reservasi."""
+        """Menghapus riwayat, pembayaran, lalu data reservasi terkait."""
         conn = get_connection()
         if not conn:
             return False, "Gagal terhubung ke basis data MySQL."
@@ -187,7 +210,11 @@ class ReservasiModel:
                 (id_reservasi,),
             )
             conn.commit()
-            return True, f"Data reservasi ID {id_reservasi} beserta data terkait berhasil dihapus!"
+            return (
+                True,
+                f"Data reservasi ID {id_reservasi} beserta data terkait "
+                "berhasil dihapus!",
+            )
         except Exception as exc:
             conn.rollback()
             return False, f"Gagal menghapus reservasi: {exc}"
