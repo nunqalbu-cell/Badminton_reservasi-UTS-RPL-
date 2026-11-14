@@ -1,21 +1,17 @@
-import sys, os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from models.user_model import UserModel
 
 class SigninController:
-    def __init__(self):
-        self.user_model = UserModel()
-
-    def register(self, nama, email, password, no_hp, role='pelanggan'):
-        if not nama or not email or not password:
-            return False, "Nama, email, dan password wajib diisi!"
-        
-        existing = self.user_model.get_user_by_email(email)
-        if existing:
-            return False, "Email sudah terdaftar!"
-        
-        success = self.user_model.create_user(nama, email, password, no_hp, role)
-        if success:
-            return True, "Registrasi berhasil! Silakan melakukan login."
-        else:
-            return False, "Gagal mendaftarkan akun baru."
+    @staticmethod
+    def register(nama: str, email: str, password: str, no_hp: str = ""):
+        if not nama.strip() or not email.strip() or not password.strip():
+            return False, "Nama lengkap, email, dan kata sandi wajib diisi!"
+        if "@" not in email:
+            return False, "Format email tidak valid!"
+        if len(password.strip()) < 4:
+            return False, "Kata sandi minimal 4 karakter!"
+        return UserModel.registrasi(
+            nama.strip(),
+            email.strip(),
+            password.strip(),
+            no_hp.strip(),
+        )

@@ -1,30 +1,19 @@
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-import config.database as db_mod
-
-
-def _get_conn():
-    """Mengambil koneksi database dari config/database.py secara fleksibel"""
-    if hasattr(db_mod, 'get_connection'):
-        return db_mod.get_connection()
-    if hasattr(db_mod, 'create_connection'):
-        return db_mod.create_connection()
-    if hasattr(db_mod, 'Database') and hasattr(db_mod.Database, 'get_connection'):
-        return db_mod.Database.get_connection()
-    if hasattr(db_mod, 'connect'):
-        return db_mod.connect()
-    raise ImportError("Fungsi koneksi database tidak ditemukan di config/database.py")
-
+from config.database import get_connection
 
 class PembayaranModel:
     @staticmethod
     def get_all_pembayaran():
-        conn = _get_conn()
+        conn = get_connection()
+        if not conn:
+            return []
         cursor = conn.cursor(dictionary=True)
         try:
-            query = "SELECT * FROM pembayaran ORDER BY id_pembayaran DESC"
+            query = """
+                SELECT id_pembayaran, id_reservasi, metode_pembayaran,
+                       jumlah_bayar, status_pembayaran, kode_referensi, tanggal_bayar
+                FROM pembayaran
+                ORDER BY id_pembayaran DESC
+            """
             cursor.execute(query)
             return cursor.fetchall()
         finally:
@@ -32,70 +21,72 @@ class PembayaranModel:
             conn.close()
 
     @staticmethod
-    def add_pembayaran(id_reservasi, metode_pembayaran, jumlah_bayar,
-                       status_pembayaran="menunggu", kode_referensi=None, tanggal_bayar=None):
-        conn = _get_conn()
+    def add_pembayaran(id_reservasi, metode, jumlah_bayar, kode_referensi=""):
+        conn = get_connection()
+        if not conn:
+            return False, "Koneksi database gagal."
         cursor = conn.cursor()
         try:
             query = """
                 INSERT INTO pembayaran
-                (id_reservasi, metode_pembayaran, jumlah_bayar, status_pembayaran, kode_referensi, tanggal_bayar)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                (id_reservasi, metode_pembayaran, jumlah_bayar, status_pembayaran, kode_referensi)
+                VALUES (%s, %s, %s, 'menunggu', %s)
             """
-            cursor.execute(query, (
-                id_reservasi,
-                metode_pembayaran,
-                jumlah_bayar,
-                status_pembayaran,
-                kode_referensi if kode_referensi else None,
-                tanggal_bayar if tanggal_bayar else None
-            ))
+            cursor.execute(query, (id_reservasi, metode, jumlah_bayar, kode_referensi))
             conn.commit()
-            return True
+            return True, "Data pembayaran berhasil dicatat (Menunggu Verifikasi)."
+        except Exception as exc:
+            conn.rollback()
+            return False, f"Gagal menyimpan pembayaran: {exc}"
         finally:
             cursor.close()
             conn.close()
 
     @staticmethod
-    def update_pembayaran(id_pembayaran, id_reservasi, metode_pembayaran, jumlah_bayar,
-                          status_pembayaran, kode_referensi=None, tanggal_bayar=None):
-        conn = _get_conn()
+    def update_pembayaran(id_pembayaran, status_pembayaran):
+        conn = get_connection()
+        if not conn:
+            return False, "Koneksi database gagal."
         cursor = conn.cursor()
         try:
-            query = """
-                UPDATE pembayaran
-                SET id_reservasi = %s,
-                    metode_pembayaran = %s,
-                    jumlah_bayar = %s,
-                    status_pembayaran = %s,
-                    kode_referensi = %s,
-                    tanggal_bayar = %s
-                WHERE id_pembayaran = %s
-            """
-            cursor.execute(query, (
-                id_reservasi,
-                metode_pembayaran,
-                jumlah_bayar,
-                status_pembayaran,
-                kode_referensi if kode_referensi else None,
-                tanggal_bayar if tanggal_bayar else None,
-                id_pembayaran
-            ))
+            if status_pembayaran == "lunas":
+                query = """
+                    UPDATE pembayaran
+                    SET status_pembayaran = %s, tanggal_bayar = NOW()
+                    WHERE id_pembayaran = %s
+                """
+            else:
+                query = """
+                    UPDATE pembayaran
+                    SET status_pembayaran = %s
+                    WHERE id_pembayaran = %s
+                """
+            cursor.execute(query, (status_pembayaran, id_pembayaran))
             conn.commit()
-            return True
+            return True, f"Status pembayaran diperbarui menjadi '{status_pembayaran}'."
+        except Exception as exc:
+            conn.rollback()
+            return False, f"Gagal memperbarui pembayaran: {exc}"
         finally:
             cursor.close()
             conn.close()
 
     @staticmethod
     def delete_pembayaran(id_pembayaran):
-        conn = _get_conn()
+        conn = get_connection()
+        if not conn:
+            return False, "Koneksi database gagal."
         cursor = conn.cursor()
         try:
-            query = "DELETE FROM pembayaran WHERE id_pembayaran = %s"
-            cursor.execute(query, (id_pembayaran,))
+            cursor.execute(
+                "DELETE FROM pembayaran WHERE id_pembayaran = %s",
+                (id_pembayaran,),
+            )
             conn.commit()
-            return True
+            return True, "Data pembayaran berhasil dihapus."
+        except Exception as exc:
+            conn.rollback()
+            return False, f"Gagal menghapus pembayaran: {exc}"
         finally:
             cursor.close()
             conn.close()
